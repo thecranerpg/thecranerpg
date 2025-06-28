@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Old School D&D Character Generator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=MedievalSharp&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .font-medieval {
+            font-family: 'MedievalSharp', cursive;
+        }
+    </style>
+</head>
+<body class="bg-gray-800 text-gray-200 flex flex-col items-center justify-center min-h-screen p-4">
+
+    <div class="w-full max-w-2xl bg-gray-900 rounded-2xl shadow-2xl p-6 md:p-8 border border-gray-700">
+
+        <!-- Header Section -->
+        <div class="text-center mb-6">
+            <h1 class="font-medieval text-4xl md:text-5xl text-yellow-400">Character Generator</h1>
+            <p class="text-gray-400 mt-2">Roll a new adventurer for your old school game.</p>
+        </div>
+
+        <!-- Action Button -->
+        <div class="text-center mb-8">
+            <button id="generateBtn" class="bg-yellow-500 hover:bg-yellow-600 text-gray-900 font-bold py-3 px-8 rounded-lg shadow-lg transform hover:scale-105 transition-transform duration-300 ease-in-out">
+                Roll New Character
+            </button>
+        </div>
+
+        <!-- Character Sheet Output -->
+        <div id="characterSheet" class="hidden bg-gray-800/50 p-6 rounded-xl border border-gray-700 space-y-6">
+
+            <!-- Name and Class -->
+            <div class="text-center pb-4 border-b border-gray-600">
+                <h2 id="characterClass" class="font-medieval text-3xl text-white"></h2>
+                <!-- Placeholder for future name/gender -->
+                 <p class="text-gray-400 text-sm">(Name & Gender coming soon)</p>
+            </div>
+
+            <!-- Core Stats: HP, Saving Throw, Hit Dice -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
+                <div class="bg-gray-700/60 p-4 rounded-lg">
+                    <p class="text-sm font-semibold text-yellow-400 uppercase tracking-wider">Health</p>
+                    <p id="health" class="text-2xl font-bold text-white"></p>
+                </div>
+                <div class="bg-gray-700/60 p-4 rounded-lg">
+                    <p class="text-sm font-semibold text-yellow-400 uppercase tracking-wider">Saving Throw</p>
+                    <p id="savingThrow" class="text-2xl font-bold text-white"></p>
+                </div>
+                <div class="bg-gray-700/60 p-4 rounded-lg">
+                    <p class="text-sm font-semibold text-yellow-400 uppercase tracking-wider">Hit Dice</p>
+                    <p id="hitDice" class="text-2xl font-bold text-white"></p>
+                </div>
+            </div>
+
+            <!-- Ability Scores -->
+            <div>
+                <h3 class="text-center font-medieval text-2xl text-yellow-400 mb-4">Ability Scores</h3>
+                <div id="stats" class="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                    <!-- Stats will be populated here by JavaScript -->
+                </div>
+            </div>
+
+            <!-- Future Sections -->
+            <div class="text-center pt-4 border-t border-gray-600">
+                 <p class="text-gray-500 italic">Skills & Magic will be added here in the future.</p>
+            </div>
+        </div>
+         <!-- Initial Message -->
+        <div id="initialMessage" class="text-center text-gray-500 py-10">
+            <p>Your new character awaits. Click the button to begin!</p>
+        </div>
+    </div>
+
+    <script>
+        // --- CONFIGURATION ---
+        // This section contains the core rules. You can easily modify these later.
+        const characterClasses = ['Cleric', 'Magic-User', 'Fighter', 'Thief'];
+        const attributes = ['STR', 'DEX', 'CON', 'INT', 'WIS', 'CHA'];
+
+        // --- DOM ELEMENTS ---
+        const generateBtn = document.getElementById('generateBtn');
+        const characterSheet = document.getElementById('characterSheet');
+        const initialMessage = document.getElementById('initialMessage');
+        const statsContainer = document.getElementById('stats');
+        const classEl = document.getElementById('characterClass');
+        const healthEl = document.getElementById('health');
+        const savingThrowEl = document.getElementById('savingThrow');
+        const hitDiceEl = document.getElementById('hitDice');
+
+        // --- CORE FUNCTIONS ---
+
+        /**
+         * Rolls a single die with a given number of sides.
+         * @param {number} sides - The number of sides on the die.
+         * @returns {number} The result of the roll.
+         */
+        function rollDie(sides) {
+            return Math.floor(Math.random() * sides) + 1;
+        }
+
+        /**
+         * Rolls 3d6 to generate an ability score and its modifier.
+         * @returns {object} An object containing the score and modifier.
+         */
+        function getAbilityScore() {
+            const score = rollDie(6) + rollDie(6) + rollDie(6);
+            let modifier = 0;
+            if (score <= 6) {
+                modifier = -1;
+            } else if (score >= 15) {
+                modifier = 1;
+            }
+            return { score, modifier };
+        }
+
+        /**
+         * Generates all six ability scores for a character.
+         * @returns {object} An object containing all attributes with their scores and modifiers.
+         */
+        function rollStats() {
+            const stats = {};
+            attributes.forEach(attr => {
+                stats[attr] = getAbilityScore();
+            });
+            return stats;
+        }
+
+        /**
+         * Randomly selects a character class.
+         * @returns {string} The chosen character class.
+         */
+        function getRandomClass() {
+            const index = Math.floor(Math.random() * characterClasses.length);
+            return characterClasses[index];
+        }
+
+        /**
+         * Calculates initial health based on class and CON modifier.
+         * @param {string} charClass - The character's class.
+         * @param {number} conModifier - The character's Constitution modifier.
+         * @returns {number} The total starting health.
+         */
+        function calculateHealth(charClass, conModifier) {
+            let health = 6 + conModifier;
+            if (charClass === 'Fighter') {
+                health += 1;
+            }
+            return health;
+        }
+
+        /**
+         * Determines the saving throw based on class.
+         * @param {string} charClass - The character's class.
+         * @returns {number} The saving throw value.
+         */
+        function getSavingThrow(charClass) {
+            switch (charClass) {
+                case 'Cleric':
+                case 'Magic-User':
+                    return 15;
+                case 'Fighter':
+                case 'Thief':
+                    return 14;
+                default:
+                    return 16; // Default case, should not be reached
+            }
+        }
+
+        /**
+         * Determines the hit dice based on class.
+         * @param {string} charClass - The character's class.
+         * @returns {string} The hit dice representation.
+         */
+        function getHitDice(charClass) {
+            if (charClass === 'Fighter') {
+                return '1+1';
+            }
+            return '1';
+        }
+
+        // --- DISPLAY FUNCTION ---
+
+        /**
+         * Updates the HTML to display the generated character sheet.
+         * @param {object} character - The complete character object.
+         */
+        function displayCharacter(character) {
+            // Update class and core stats
+            classEl.textContent = character.class;
+            healthEl.textContent = character.health;
+            savingThrowEl.textContent = character.savingThrow;
+            hitDiceEl.textContent = character.hitDice;
+
+            // Clear previous stats and populate new ones
+            statsContainer.innerHTML = '';
+            for (const attr in character.stats) {
+                const stat = character.stats[attr];
+                const modifierString = stat.modifier > 0 ? `+${stat.modifier}` : `${stat.modifier}`;
+                
+                const statBlock = `
+                    <div class="bg-gray-700/60 p-3 rounded-lg flex justify-between items-center">
+                        <span class="font-bold text-lg">${attr}</span>
+                        <span class="text-xl text-white">${stat.score} <span class="text-sm text-gray-400">(${modifierString})</span></span>
+                    </div>
+                `;
+                statsContainer.innerHTML += statBlock;
+            }
+
+            // Show the character sheet and hide the initial message
+            initialMessage.classList.add('hidden');
+            characterSheet.classList.remove('hidden');
+        }
+
+        // --- MAIN GENERATION LOGIC ---
+
+        /**
+         * The main function to generate a new character and display it.
+         */
+        function generateCharacter() {
+            // This is where we assemble the character.
+            // This structure makes it easy to add new properties later.
+            const character = {};
+
+            // 1. Roll stats and get class
+            character.stats = rollStats();
+            character.class = getRandomClass();
+
+            // 2. Calculate derived stats based on the results of step 1
+            const conModifier = character.stats.CON.modifier;
+            character.health = calculateHealth(character.class, conModifier);
+            character.savingThrow = getSavingThrow(character.class);
+            character.hitDice = getHitDice(character.class);
+            
+            // NOTE: To add a name in the future, you could add a line like:
+            // character.name = getRandomName();
+            // Then just make sure to display it in the displayCharacter function.
+
+            // 3. Display the final character object
+            displayCharacter(character);
+        }
+
+        // --- EVENT LISTENER ---
+        generateBtn.addEventListener('click', generateCharacter);
+    </script>
+</body>
+</html>
