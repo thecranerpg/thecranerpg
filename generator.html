@@ -15,6 +15,9 @@
         .font-medieval {
             font-family: 'MedievalSharp', cursive;
         }
+        .class-btn {
+            @apply bg-gray-700 hover:bg-yellow-500 hover:text-gray-900 text-white font-bold py-2 px-4 rounded-lg transition-colors duration-300 w-full;
+        }
     </style>
 </head>
 <body class="bg-gray-800 text-gray-200 flex flex-col items-center justify-center min-h-screen p-4">
@@ -24,231 +27,316 @@
         <!-- Header Section -->
         <div class="text-center mb-6">
             <h1 class="font-medieval text-4xl md:text-5xl text-yellow-400">Character Generator</h1>
-            <p class="text-gray-400 mt-2">Roll a new adventurer for your old school game.</p>
+            <p id="instructionText" class="text-gray-400 mt-2">Step 1: Roll your ability scores.</p>
         </div>
 
         <!-- Action Button -->
         <div class="text-center mb-8">
-            <button id="generateBtn" class="bg-yellow-500 hover:bg-yellow-600 text-gray-900 font-bold py-3 px-8 rounded-lg shadow-lg transform hover:scale-105 transition-transform duration-300 ease-in-out">
-                Roll New Character
+            <button id="mainBtn" class="bg-yellow-500 hover:bg-yellow-600 text-gray-900 font-bold py-3 px-8 rounded-lg shadow-lg transform hover:scale-105 transition-transform duration-300 ease-in-out">
+                Roll Stats
             </button>
         </div>
 
         <!-- Character Sheet Output -->
-        <div id="characterSheet" class="hidden bg-gray-800/50 p-6 rounded-xl border border-gray-700 space-y-6">
+        <div id="characterSheet" class="space-y-6">
 
-            <!-- Name and Class -->
-            <div class="text-center pb-4 border-b border-gray-600">
-                <h2 id="characterClass" class="font-medieval text-3xl text-white"></h2>
-                <!-- Placeholder for future name/gender -->
-                 <p class="text-gray-400 text-sm">(Name & Gender coming soon)</p>
-            </div>
-
-            <!-- Core Stats: HP, Saving Throw, Hit Dice -->
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
-                <div class="bg-gray-700/60 p-4 rounded-lg">
-                    <p class="text-sm font-semibold text-yellow-400 uppercase tracking-wider">Health</p>
-                    <p id="health" class="text-2xl font-bold text-white"></p>
-                </div>
-                <div class="bg-gray-700/60 p-4 rounded-lg">
-                    <p class="text-sm font-semibold text-yellow-400 uppercase tracking-wider">Saving Throw</p>
-                    <p id="savingThrow" class="text-2xl font-bold text-white"></p>
-                </div>
-                <div class="bg-gray-700/60 p-4 rounded-lg">
-                    <p class="text-sm font-semibold text-yellow-400 uppercase tracking-wider">Hit Dice</p>
-                    <p id="hitDice" class="text-2xl font-bold text-white"></p>
-                </div>
-            </div>
-
-            <!-- Ability Scores -->
-            <div>
+            <!-- Ability Scores (Visible after rolling) -->
+            <div id="statsSection" class="hidden">
                 <h3 class="text-center font-medieval text-2xl text-yellow-400 mb-4">Ability Scores</h3>
-                <div id="stats" class="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                <div id="statsContainer" class="grid grid-cols-2 sm:grid-cols-3 gap-4">
                     <!-- Stats will be populated here by JavaScript -->
                 </div>
             </div>
 
-            <!-- Future Sections -->
-            <div class="text-center pt-4 border-t border-gray-600">
-                 <p class="text-gray-500 italic">Skills & Magic will be added here in the future.</p>
+            <!-- Class Selection (Visible after rolling stats) -->
+            <div id="classSelection" class="hidden text-center pt-6 border-t border-gray-600">
+                 <div id="classContainer" class="grid grid-cols-2 md:grid-cols-5 gap-3">
+                    <!-- Class buttons will be populated here -->
+                 </div>
             </div>
-        </div>
-         <!-- Initial Message -->
-        <div id="initialMessage" class="text-center text-gray-500 py-10">
-            <p>Your new character awaits. Click the button to begin!</p>
+
+            <!-- Class-dependent Info (Visible after selecting class) -->
+            <div id="classDependentStats" class="hidden space-y-6 pt-6 border-t border-gray-600">
+                 <!-- Name and Class -->
+                <div class="text-center pb-4 border-b border-gray-600">
+                    <h2 id="characterClass" class="font-medieval text-3xl text-white"></h2>
+                </div>
+
+                <!-- Core Stats: HP, Saving Throw, Hit Dice -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
+                    <div class="bg-gray-700/60 p-4 rounded-lg">
+                        <p class="text-sm font-semibold text-yellow-400 uppercase tracking-wider">Health</p>
+                        <p id="health" class="text-2xl font-bold text-white"></p>
+                    </div>
+                    <div class="bg-gray-700/60 p-4 rounded-lg">
+                        <p class="text-sm font-semibold text-yellow-400 uppercase tracking-wider">Saving Throw</p>
+                        <p id="savingThrow" class="text-2xl font-bold text-white"></p>
+                    </div>
+                    <div class="bg-gray-700/60 p-4 rounded-lg">
+                        <p class="text-sm font-semibold text-yellow-400 uppercase tracking-wider">Hit Dice</p>
+                        <p id="hitDice" class="text-2xl font-bold text-white"></p>
+                    </div>
+                </div>
+                
+                <!-- Equipment Section -->
+                <div id="equipmentSection" class="bg-gray-700/60 p-4 rounded-lg">
+                    <h4 class="text-sm font-semibold text-yellow-400 uppercase tracking-wider text-center mb-3">Equipment</h4>
+                    <div class="text-left space-y-2">
+                        <p><span class="font-bold text-gray-300">Armor:</span> <span id="armor" class="text-white"></span></p>
+                        <div>
+                            <p class="font-bold text-gray-300">Weapons:</p>
+                            <div id="weapons" class="text-white pl-2">
+                                <!-- Weapon details will be injected here -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
         </div>
     </div>
 
     <script>
         // --- CONFIGURATION ---
-        // This section contains the core rules. You can easily modify these later.
         const characterClasses = ['Cleric', 'Magic-User', 'Fighter', 'Thief'];
         const attributes = ['STR', 'DEX', 'CON', 'INT', 'WIS', 'CHA'];
+        
+        // Weapon data is now a list of objects for more detail
+        const allWeapons = [
+            { name: 'Hand Ax', damage: 'd6', range: 'Close (throw near)', tags: 'Shield Grapple' },
+            { name: 'Battle Ax (2H)', damage: 'd6+1', range: 'Close', tags: 'Hacking' },
+            { name: 'Bow', damage: 'd6', range: 'Far', tags: '-' },
+            { name: 'Crossbow (2H)', damage: 'd6+1', range: 'Far', tags: 'Instant' },
+            { name: 'Club', damage: 'd6', range: 'Close', tags: 'Bludgeon' },
+            { name: 'Dagger', damage: 'd6', range: 'Close (throw near)', tags: 'Concealable' },
+            { name: 'Hammer', damage: 'd6', range: 'Close', tags: 'Bludgeon' },
+            { name: 'War Hammer', damage: 'd6+1', range: 'Close', tags: 'Bludgeon' },
+            { name: 'Pole-arm', damage: 'd6+1', range: 'Close', tags: 'Reach' },
+            { name: 'Sling', damage: 'd6', range: 'Near', tags: 'Concealable' },
+            { name: 'Spear', damage: 'd6', range: 'Close', tags: 'Reach' },
+            { name: 'Staff (2H)', damage: 'd6', range: 'Close', tags: '-' },
+            { name: 'Sword', damage: 'd6', range: 'Close', tags: 'Cleave' },
+            { name: 'Great Sword (2H)', damage: 'd6+1', range: 'Close', tags: 'Cleave' }
+        ];
+
+        // Create class-specific weapon lists by filtering the main list
+        const clericWeaponNames = ['Club', 'Hammer', 'Staff (2H)', 'War Hammer'];
+        const clericWeapons = allWeapons.filter(w => clericWeaponNames.includes(w.name));
+
+        // *** BUG FIX: Changed 'Staff' to 'Staff (2H)' to match the name in allWeapons ***
+        const magicUserWeaponNames = ['Staff (2H)', 'Dagger'];
+        const magicUserWeapons = allWeapons.filter(w => magicUserWeaponNames.includes(w.name));
+
+
+        // --- STATE MANAGEMENT ---
+        let characterState = {};
 
         // --- DOM ELEMENTS ---
-        const generateBtn = document.getElementById('generateBtn');
-        const characterSheet = document.getElementById('characterSheet');
-        const initialMessage = document.getElementById('initialMessage');
-        const statsContainer = document.getElementById('stats');
+        const mainBtn = document.getElementById('mainBtn');
+        const instructionText = document.getElementById('instructionText');
+        const statsSection = document.getElementById('statsSection');
+        const statsContainer = document.getElementById('statsContainer');
+        const classSelection = document.getElementById('classSelection');
+        const classContainer = document.getElementById('classContainer');
+        const classDependentStats = document.getElementById('classDependentStats');
         const classEl = document.getElementById('characterClass');
         const healthEl = document.getElementById('health');
         const savingThrowEl = document.getElementById('savingThrow');
         const hitDiceEl = document.getElementById('hitDice');
+        const equipmentSection = document.getElementById('equipmentSection');
+        const armorEl = document.getElementById('armor');
+        const weaponsEl = document.getElementById('weapons');
 
         // --- CORE FUNCTIONS ---
 
-        /**
-         * Rolls a single die with a given number of sides.
-         * @param {number} sides - The number of sides on the die.
-         * @returns {number} The result of the roll.
-         */
         function rollDie(sides) {
             return Math.floor(Math.random() * sides) + 1;
         }
 
-        /**
-         * Rolls 3d6 to generate an ability score and its modifier.
-         * @returns {object} An object containing the score and modifier.
-         */
+        function getRandomItem(arr) {
+            return arr[Math.floor(Math.random() * arr.length)];
+        }
+
         function getAbilityScore() {
             const score = rollDie(6) + rollDie(6) + rollDie(6);
             let modifier = 0;
-            if (score <= 6) {
-                modifier = -1;
-            } else if (score >= 15) {
-                modifier = 1;
-            }
+            if (score <= 6) modifier = -1;
+            else if (score >= 15) modifier = 1;
             return { score, modifier };
         }
 
-        /**
-         * Generates all six ability scores for a character.
-         * @returns {object} An object containing all attributes with their scores and modifiers.
-         */
-        function rollStats() {
-            const stats = {};
-            attributes.forEach(attr => {
-                stats[attr] = getAbilityScore();
-            });
-            return stats;
-        }
-
-        /**
-         * Randomly selects a character class.
-         * @returns {string} The chosen character class.
-         */
         function getRandomClass() {
-            const index = Math.floor(Math.random() * characterClasses.length);
-            return characterClasses[index];
+            return getRandomItem(characterClasses);
         }
 
-        /**
-         * Calculates initial health based on class and CON modifier.
-         * @param {string} charClass - The character's class.
-         * @param {number} conModifier - The character's Constitution modifier.
-         * @returns {number} The total starting health.
-         */
         function calculateHealth(charClass, conModifier) {
             let health = 6 + conModifier;
-            if (charClass === 'Fighter') {
-                health += 1;
-            }
+            if (charClass === 'Fighter') health += 1;
             return health;
         }
 
-        /**
-         * Determines the saving throw based on class.
-         * @param {string} charClass - The character's class.
-         * @returns {number} The saving throw value.
-         */
         function getSavingThrow(charClass) {
-            switch (charClass) {
-                case 'Cleric':
-                case 'Magic-User':
-                    return 15;
-                case 'Fighter':
-                case 'Thief':
-                    return 14;
-                default:
-                    return 16; // Default case, should not be reached
-            }
+            return (charClass === 'Cleric' || charClass === 'Magic-User') ? 15 : 14;
         }
 
-        /**
-         * Determines the hit dice based on class.
-         * @param {string} charClass - The character's class.
-         * @returns {string} The hit dice representation.
-         */
         function getHitDice(charClass) {
-            if (charClass === 'Fighter') {
-                return '1+1';
+            return (charClass === 'Fighter') ? '1+1' : '1';
+        }
+        
+        function getStartingArmor(charClass) {
+            const roll = rollDie(6);
+            switch (charClass) {
+                case 'Fighter':
+                    if (roll <= 3) return 'Leather (+2 AC)';
+                    if (roll <= 5) return 'Chainmail (+4 AC)';
+                    return 'Plate (+6 AC)';
+                case 'Cleric':
+                    if (roll <= 3) return 'No Armor';
+                    if (roll <= 5) return 'Leather (+2 AC)';
+                    return 'Chainmail (+4 AC)';
+                case 'Thief':
+                    if (roll === 1) return 'No Armor';
+                    return 'Leather (+2 AC)';
+                case 'Magic-User':
+                    if (roll <= 5) return 'No Armor';
+                    return 'Awesome Robes (many pockets)';
+                default:
+                    return 'No Armor';
             }
-            return '1';
         }
 
-        // --- DISPLAY FUNCTION ---
-
         /**
-         * Updates the HTML to display the generated character sheet.
-         * @param {object} character - The complete character object.
+         * Determines starting weapons based on class.
+         * @param {string} charClass - The character's class.
+         * @returns {object[]} An array of weapon objects.
          */
-        function displayCharacter(character) {
-            // Update class and core stats
-            classEl.textContent = character.class;
-            healthEl.textContent = character.health;
-            savingThrowEl.textContent = character.savingThrow;
-            hitDiceEl.textContent = character.hitDice;
+        function getStartingWeapons(charClass) {
+            switch (charClass) {
+                case 'Fighter':
+                    // Ensure the two weapons are not the same
+                    let weapon1 = getRandomItem(allWeapons);
+                    let weapon2 = getRandomItem(allWeapons);
+                    while (weapon1.name === weapon2.name) {
+                        weapon2 = getRandomItem(allWeapons);
+                    }
+                    return [weapon1, weapon2];
+                case 'Thief':
+                    return [getRandomItem(allWeapons)];
+                case 'Cleric':
+                    return [getRandomItem(clericWeapons)];
+                case 'Magic-User':
+                    return [getRandomItem(magicUserWeapons)];
+                default:
+                    return [];
+            }
+        }
+        
+        // --- UI AND LOGIC HANDLERS ---
 
-            // Clear previous stats and populate new ones
+        function resetGenerator() {
+            instructionText.textContent = "Step 1: Roll your ability scores.";
+            mainBtn.textContent = 'Roll Stats';
+            statsSection.classList.add('hidden');
+            classSelection.classList.add('hidden');
+            classDependentStats.classList.add('hidden');
+            characterState = {};
+        }
+
+        function handleRollStats() {
+            characterState.stats = {};
+            attributes.forEach(attr => {
+                characterState.stats[attr] = getAbilityScore();
+            });
+
             statsContainer.innerHTML = '';
-            for (const attr in character.stats) {
-                const stat = character.stats[attr];
-                const modifierString = stat.modifier > 0 ? `+${stat.modifier}` : `${stat.modifier}`;
-                
+            for (const attr in characterState.stats) {
+                const stat = characterState.stats[attr];
+                const modifierString = stat.modifier >= 0 ? `+${stat.modifier}` : `${stat.modifier}`;
                 const statBlock = `
                     <div class="bg-gray-700/60 p-3 rounded-lg flex justify-between items-center">
                         <span class="font-bold text-lg">${attr}</span>
                         <span class="text-xl text-white">${stat.score} <span class="text-sm text-gray-400">(${modifierString})</span></span>
-                    </div>
-                `;
+                    </div>`;
                 statsContainer.innerHTML += statBlock;
             }
+            statsSection.classList.remove('hidden');
 
-            // Show the character sheet and hide the initial message
-            initialMessage.classList.add('hidden');
-            characterSheet.classList.remove('hidden');
+            instructionText.textContent = 'Step 2: Choose your class.';
+            classSelection.classList.remove('hidden');
+            classDependentStats.classList.add('hidden');
+            mainBtn.textContent = 'Start Over';
         }
 
-        // --- MAIN GENERATION LOGIC ---
-
-        /**
-         * The main function to generate a new character and display it.
-         */
-        function generateCharacter() {
-            // This is where we assemble the character.
-            // This structure makes it easy to add new properties later.
-            const character = {};
-
-            // 1. Roll stats and get class
-            character.stats = rollStats();
-            character.class = getRandomClass();
-
-            // 2. Calculate derived stats based on the results of step 1
-            const conModifier = character.stats.CON.modifier;
-            character.health = calculateHealth(character.class, conModifier);
-            character.savingThrow = getSavingThrow(character.class);
-            character.hitDice = getHitDice(character.class);
+        function handleSelectClass(chosenClass) {
+            characterState.class = chosenClass;
             
-            // NOTE: To add a name in the future, you could add a line like:
-            // character.name = getRandomName();
-            // Then just make sure to display it in the displayCharacter function.
+            const conModifier = characterState.stats.CON.modifier;
+            characterState.health = calculateHealth(characterState.class, conModifier);
+            characterState.savingThrow = getSavingThrow(characterState.class);
+            characterState.hitDice = getHitDice(characterState.class);
+            characterState.armor = getStartingArmor(characterState.class);
+            characterState.weapons = getStartingWeapons(characterState.class);
 
-            // 3. Display the final character object
-            displayCharacter(character);
+            classEl.textContent = characterState.class;
+            healthEl.textContent = characterState.health;
+            savingThrowEl.textContent = characterState.savingThrow;
+            hitDiceEl.textContent = characterState.hitDice;
+            armorEl.textContent = characterState.armor;
+            
+            // Format and display the detailed weapon info
+            const weaponsHtml = characterState.weapons.map(weapon =>
+                `<div class="mt-1">
+                    <span class="font-semibold">${weapon.name}</span>
+                    <span class="text-gray-400 text-sm block sm:inline sm:ml-2">(Dmg: ${weapon.damage}, Range: ${weapon.range}, Tags: ${weapon.tags})</span>
+                </div>`
+            ).join('');
+            weaponsEl.innerHTML = weaponsHtml;
+
+
+            classDependentStats.classList.remove('hidden');
+            classSelection.classList.add('hidden');
+            instructionText.textContent = 'Your new adventurer is ready!';
+        }
+        
+        // --- INITIALIZATION ---
+
+        function initialize() {
+            classContainer.innerHTML = '';
+            characterClasses.forEach(c => {
+                const btn = document.createElement('button');
+                btn.textContent = c;
+                btn.dataset.class = c;
+                btn.className = 'class-btn';
+                classContainer.appendChild(btn);
+            });
+            const randomBtn = document.createElement('button');
+            randomBtn.textContent = 'Random';
+            randomBtn.dataset.class = 'Random';
+            randomBtn.className = 'class-btn bg-purple-600 hover:bg-purple-500 col-span-2 md:col-span-1';
+            classContainer.appendChild(randomBtn);
+
+            mainBtn.addEventListener('click', () => {
+                if (mainBtn.textContent === 'Roll Stats') {
+                    handleRollStats();
+                } else {
+                    resetGenerator();
+                }
+            });
+
+            classContainer.addEventListener('click', (e) => {
+                if (e.target.tagName === 'BUTTON') {
+                    let selectedClass = e.target.dataset.class;
+                    if (selectedClass === 'Random') {
+                        selectedClass = getRandomClass();
+                    }
+                    handleSelectClass(selectedClass);
+                }
+            });
+
+            resetGenerator();
         }
 
-        // --- EVENT LISTENER ---
-        generateBtn.addEventListener('click', generateCharacter);
+        initialize();
     </script>
 </body>
 </html>
