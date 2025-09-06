@@ -65,8 +65,14 @@
                     }
                 });
 
+                // Log the response status for debugging
+                console.log('API Response Status:', response.status, response.statusText);
+
                 if (!response.ok) {
-                    throw new Error(`API response was not ok. Status: ${response.status}`);
+                    // Try to get more detailed error information from the response body
+                    const errorBody = await response.text();
+                    console.error('Failed to fetch data. Response body:', errorBody);
+                    throw new Error(`API response was not ok. Status: ${response.status} ${response.statusText}. See console for details.`);
                 }
 
                 const games = await response.json();
@@ -78,7 +84,7 @@
 
             } catch (error) {
                 console.error('Failed to fetch scores:', error);
-                displayError('Failed to load scores. Please check your API key and try again.');
+                displayError(error.message || 'Failed to load scores. Please check your API key and try again.');
             }
         }
 
