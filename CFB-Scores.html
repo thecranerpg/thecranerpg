@@ -72,9 +72,11 @@
                     // Try to get more detailed error information from the response body
                     const errorBody = await response.text();
                     console.error('Failed to fetch data. Response body:', errorBody);
+                    // The 'throw' will jump to the catch block
                     throw new Error(`API response was not ok. Status: ${response.status} ${response.statusText}. See console for details.`);
                 }
 
+                // If the response is OK, parse the JSON
                 const games = await response.json();
                 renderScores(games);
                 updateLastUpdatedTime();
