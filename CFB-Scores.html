@@ -89,92 +89,60 @@
         }
 
         // Function to render the scores on the page
-        function renderScores(games) {
-            scoresContainer.innerHTML = ''; // Clear the container
+       function renderScores(games) {
+            scoresContainer.innerHTML = ''; // Clear the container [cite: 18]
             if (games.length === 0) {
-                scoresContainer.innerHTML = `<div class="col-span-full text-center p-8 text-gray-400">No live games currently available.</div>`;
-                return;
+                scoresContainer.innerHTML = `<div class="col-span-full text-center p-8 text-gray-400">No live games currently available.</div>`; [cite: 19]
+                return; [cite: 20]
             }
 
             games.forEach(game => {
-                let cardClasses = 'bg-gray-800 p-4 rounded-xl shadow-lg transition-all duration-300 transform hover:scale-105 border-2 border-transparent';
-                let scoreHighlightClass = '';
+                let cardClasses = 'bg-gray-800 p-4 rounded-xl shadow-lg transition-all duration-300 transform hover:scale-105 border-2 border-transparent'; [cite: 20]
+                let scoreHighlightClass = ''; [cite: 20]
 
-                // Highlighting logic for a one-score game in the second half
-                const isSecondHalf = game.period > 2;
-                const isOneScoreGame = Math.abs(game.awayPoints - game.homePoints) <= 8;
+                const isSecondHalf = game.period > 2; [cite: 21]
+                // Note: The API uses 'homeScore' and 'awayScore'
+                const isOneScoreGame = Math.abs(game.awayScore - game.homeScore) <= 8;
                 
                 if (isSecondHalf && isOneScoreGame) {
-                    // Check if either team is ranked
-                    const isRankedGame = game.homeRank || game.awayRank;
-
+                    const isRankedGame = game.homeRank || game.awayRank; [cite: 22]
                     if (isRankedGame) {
-                        scoreHighlightClass = 'bg-yellow-600 border-yellow-400';
+                        scoreHighlightClass = 'bg-yellow-600 border-yellow-400'; [cite: 22]
                     } else {
-                        scoreHighlightClass = 'bg-blue-600 border-blue-400';
+                        scoreHighlightClass = 'bg-blue-600 border-blue-400'; [cite: 23]
                     }
                 }
 
-                const statusText = game.status === 'Final' ? 'Final' : `Period ${game.period ?? '-'}`;
-                const clockText = game.status === 'Final' ? '' : game.clock?.displayValue ?? '-';
-
+                const statusText = game.status === 'Final' ? 'Final' : `Period ${game.period ?? '-'}`; [cite: 23, 24]
+                const clockText = game.status === 'Final' ? '' : game.clock?.displayValue ?? '-'; [cite: 24]
+                
                 const cardHtml = `
                     <div class="${cardClasses} ${scoreHighlightClass}">
-                        <!-- Game Status -->
                         <div class="flex justify-between items-center text-sm text-gray-400 mb-2">
                             <span>${statusText}</span>
                             <span>${clockText}</span>
                         </div>
 
-                        <!-- Away Team -->
                         <div class="flex items-center justify-between mb-2">
                             <div class="flex items-center">
                                 ${game.awayRank ? `<span class="text-sm font-bold text-gray-400 mr-2">${game.awayRank}</span>` : ''}
-                                <span class="text-xl font-semibold">${game.awayTeam.abbreviation}</span>
+                                <span class="text-xl font-semibold">${game.awayAbbreviation}</span>
                             </div>
-                            <span class="text-2xl font-bold">${game.awayPoints ?? 0}</span>
+                            <span class="text-2xl font-bold">${game.awayScore ?? 0}</span>
                         </div>
                         
-                        <!-- Home Team -->
                         <div class="flex items-center justify-between">
                             <div class="flex items-center">
                                 ${game.homeRank ? `<span class="text-sm font-bold text-gray-400 mr-2">${game.homeRank}</span>` : ''}
-                                <span class="text-xl font-semibold">${game.homeTeam.abbreviation}</span>
+                                <span class="text-xl font-semibold">${game.homeAbbreviation}</span>
                             </div>
-                            <span class="text-2xl font-bold">${game.homePoints ?? 0}</span>
+                            <span class="text-2xl font-bold">${game.homeScore ?? 0}</span>
                         </div>
                     </div>
                 `;
-                scoresContainer.innerHTML += cardHtml;
+                scoresContainer.innerHTML += cardHtml; [cite: 33]
             });
         }
-
-        // Function to update the last updated time
-        function updateLastUpdatedTime() {
-            const now = new Date();
-            const formattedTime = now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
-            const formattedDate = now.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-            lastUpdatedText.textContent = `Last updated: ${formattedDate} at ${formattedTime}`;
-        }
-
-        // Function to display an error message
-        function displayError(message) {
-            scoresContainer.innerHTML = '';
-            errorMessage.textContent = message;
-            errorMessage.classList.remove('hidden');
-        }
-        
-        // This function orchestrates the fetching logic. The time and day checks are
-        // temporarily commented out to allow for easier testing.
-        function scheduleFetch() {
-            fetchScores();
-        }
-
-        // Call the scheduling function on page load and then every 10 minutes.
-        window.onload = function() {
-            scheduleFetch();
-            setInterval(scheduleFetch, 600000); // 600000 ms = 10 minutes
-        };
     </script>
 
 </body>
