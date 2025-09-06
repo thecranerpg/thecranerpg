@@ -60,7 +60,8 @@
             try {
                 // Fetch live game data from the API
                 console.log('Fetching data with header: x-api-key');
-                const response = await fetch('https://api.collegefootballdata.com/games/live', {
+                // We've updated the endpoint to /scoreboard as it is a more suitable endpoint for live scores.
+                const response = await fetch('https://api.collegefootballdata.com/scoreboard', {
                     headers: {
                         'x-api-key': apiKey
                     }
