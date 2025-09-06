@@ -125,8 +125,9 @@
     <script>
         // Use a simple, non-commercial endpoint from an open source data provider.
         // This endpoint does not require an API key for its free public-facing data.
-        // It provides information for games of a specific week.
-        const apiUrl = 'https://www.thesportsdb.com/api/v1/json/1/events.php?s=2025-2026&l=NCAAF';
+        // It provides information for games of a specific year.
+        // The season parameter 's' was updated to a single year to correct the API call.
+        const apiUrl = 'https://www.thesportsdb.com/api/v1/json/1/eventsseason.php?s=2025&l=NCAAF';
         const scoresContainer = document.getElementById('scores-container');
 
         async function fetchScores() {
