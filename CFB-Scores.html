@@ -4,196 +4,199 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>College Football Scores</title>
-    <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body {
-            background-color: #f3f4f6;
-            font-family: 'Inter', sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: #f0f4f8;
+            color: #333;
+            line-height: 1.6;
+            padding: 20px;
         }
+
         .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 2rem;
-        }
-        .game-card {
-            background-color: #ffffff;
+            max-width: 800px;
+            margin: auto;
+            background: #fff;
+            padding: 30px;
             border-radius: 12px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            padding: 1.5rem;
-            margin-bottom: 1.5rem;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            color: #1e3a8a;
+            text-align: center;
+            font-weight: bold;
+            margin-bottom: 20px;
+        }
+
+        .game-card {
+            background-color: #f8fafc;
+            border-left: 5px solid #3b82f6;
+            border-radius: 8px;
+            padding: 15px 20px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
             transition: transform 0.2s ease-in-out;
         }
+        
         .game-card:hover {
-            transform: translateY(-5px);
+            transform: translateY(-3px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
         }
+
+        .team-info {
+            display: flex;
+            align-items: center;
+            flex-grow: 1;
+        }
+
         .team-logo {
             width: 50px;
             height: 50px;
             object-fit: contain;
+            border-radius: 50%;
+            margin-right: 15px;
         }
-        .score-box {
-            background-color: #e5e7eb;
-            padding: 0.5rem 1rem;
-            border-radius: 8px;
+
+        .team-name {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: #1a202c;
+        }
+
+        .score {
             font-size: 1.5rem;
-            font-weight: bold;
-            color: #1f2937;
+            font-weight: 700;
+            color: #3b82f6;
+            margin-left: 20px;
         }
-        .status-pill {
-            padding: 0.25rem 0.75rem;
-            border-radius: 9999px;
-            font-size: 0.875rem;
+
+        .vs-text {
             font-weight: 500;
+            font-size: 1.1rem;
+            color: #6b7280;
+            margin: 0 20px;
         }
-        .status-pill.in-progress {
-            background-color: #fcd34d;
-            color: #78350f;
+
+        #scores-container {
+            margin-top: 20px;
         }
-        .status-pill.final {
-            background-color: #d1fae5;
-            color: #065f46;
+
+        .status-message {
+            text-align: center;
+            font-size: 1.1rem;
+            color: #6b7280;
+            padding: 20px;
         }
-        .status-pill.scheduled {
-            background-color: #bfdbfe;
-            color: #1e40af;
+
+        .loading-spinner {
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            border-left-color: #3b82f6;
+            animation: spin 1s ease infinite;
+            margin: 20px auto;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+            100% {
+                transform: rotate(360deg);
+            }
         }
     </style>
 </head>
 <body>
 
-<div class="container">
-    <header class="text-center mb-10">
-        <h1 class="text-4xl font-extrabold text-gray-800">College Football Scoreboard</h1>
-        <p class="text-lg text-gray-600 mt-2">Live scores and game updates from around the nation.</p>
-    </header>
-
-    <div id="scores-container">
-        <!-- Game cards will be dynamically inserted here -->
-        <div class="text-center py-10" id="loading-message">
-            <svg class="animate-spin h-10 w-10 text-gray-400 mx-auto" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-            </svg>
-            <p class="mt-4 text-gray-500">Loading scores...</p>
+    <div class="container">
+        <h1>College Football Live Scores</h1>
+        <div id="scores-container">
+            <div class="loading-spinner"></div>
+            <p class="status-message">Fetching the latest scores...</p>
         </div>
     </div>
-</div>
 
-<script>
-    document.addEventListener('DOMContentLoaded', () => {
+    <script>
+        // Use a simple, non-commercial endpoint from an open source data provider.
+        // This endpoint does not require an API key for its free public-facing data.
+        // It provides information for games of a specific week.
+        const apiUrl = 'https://www.thesportsdb.com/api/v1/json/1/events.php?s=2025-2026&l=NCAAF';
         const scoresContainer = document.getElementById('scores-container');
-        const loadingMessage = document.getElementById('loading-message');
 
-        // You must sign up for a free API key at CollegeFootballData.com
-        // and replace the placeholder below with your actual key.
-        const API_KEY = 'binY9fXRD2haWMq7CdhsdlnB9sTizn62kNqMmaFVPARUSyF/ONTqhnpvfOAk8+Rx';
-        const API_URL = 'https://api.collegefootballdata.com/games';
-
-        const today = new Date();
-        const year = today.getFullYear();
-        const week = getWeekNumber(today); // This is a simplified function; a more robust one would be better for production
-        
-        // This is a simple function to get the week number
-        function getWeekNumber(date) {
-            const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
-            const dayNum = d.getUTCDay() || 7;
-            d.setUTCDate(d.getUTCDate() + 4 - dayNum);
-            const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
-            return Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
-        }
-
-        async function fetchCFBScores() {
-            if (API_KEY === 'YOUR_API_KEY_HERE') {
-                loadingMessage.innerHTML = '<p class="text-red-500 text-center text-lg font-bold">Please get an API key from CollegeFootballData.com and replace the placeholder in the code.</p>';
-                return;
-            }
-            
+        async function fetchScores() {
             try {
-                const response = await fetch(`${API_URL}?year=${year}&week=${week}`, {
-                    method: 'GET',
-                    headers: {
-                        'Accept': 'application/json',
-                        'Authorization': `Bearer ${API_KEY}`
-                    }
-                });
+                const response = await fetch(apiUrl);
 
+                // Handle HTTP errors
                 if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
+                    throw new Error(`HTTP error! Status: ${response.status}`);
                 }
 
-                const games = await response.json();
-                renderScores(games);
+                const data = await response.json();
+                
+                // Clear the loading message and spinner
+                scoresContainer.innerHTML = '';
+
+                // Check if there are any events/games returned
+                if (data.events && data.events.length > 0) {
+                    data.events.forEach(game => {
+                        const gameCard = document.createElement('div');
+                        gameCard.classList.add('game-card');
+
+                        // Create team information elements
+                        const homeTeamDiv = document.createElement('div');
+                        homeTeamDiv.classList.add('team-info');
+                        const homeLogo = game.strThumb && game.strThumb.trim() !== '' ? game.strThumb : 'https://placehold.co/50x50/e2e8f0/64748b?text=Team';
+                        homeTeamDiv.innerHTML = `
+                            <img src="${homeLogo}" alt="${game.strHomeTeam} logo" class="team-logo">
+                            <span class="team-name">${game.strHomeTeam}</span>
+                        `;
+
+                        const awayTeamDiv = document.createElement('div');
+                        awayTeamDiv.classList.add('team-info');
+                        const awayLogo = game.strThumbAway && game.strThumbAway.trim() !== '' ? game.strThumbAway : 'https://placehold.co/50x50/e2e8f0/64748b?text=Team';
+                        awayTeamDiv.innerHTML = `
+                            <img src="${awayLogo}" alt="${game.strAwayTeam} logo" class="team-logo">
+                            <span class="team-name">${game.strAwayTeam}</span>
+                        `;
+                        
+                        const scoreDiv = document.createElement('div');
+                        scoreDiv.classList.add('score-info');
+                        scoreDiv.innerHTML = `
+                            <span class="score">${game.intHomeScore || '-'}</span>
+                            <span class="vs-text">vs</span>
+                            <span class="score">${game.intAwayScore || '-'}</span>
+                        `;
+                        
+                        // Append elements to the card
+                        gameCard.appendChild(homeTeamDiv);
+                        gameCard.appendChild(scoreDiv);
+                        gameCard.appendChild(awayTeamDiv);
+
+                        scoresContainer.appendChild(gameCard);
+                    });
+                } else {
+                    scoresContainer.innerHTML = `<p class="status-message">No live games found. Please check back later!</p>`;
+                }
 
             } catch (error) {
-                console.error("Could not fetch college football scores:", error);
-                loadingMessage.innerHTML = `<p class="text-red-500 text-center text-lg font-bold">Failed to load scores. Please check the console for more details.</p>`;
+                console.error('Failed to fetch scores:', error);
+                scoresContainer.innerHTML = `<p class="status-message">Error fetching scores. Please try again later.</p>`;
             }
         }
 
-        function renderScores(games) {
-            scoresContainer.innerHTML = '';
-            if (games.length === 0) {
-                scoresContainer.innerHTML = '<p class="text-center text-gray-500 text-lg">No games scheduled for this week.</p>';
-                return;
-            }
-
-            games.forEach(game => {
-                const homeTeam = game.home_team;
-                const awayTeam = game.away_team;
-                const homeScore = game.home_points !== null ? game.home_points : 0;
-                const awayScore = game.away_points !== null ? game.away_points : 0;
-                const venue = game.venue || 'TBD';
-                
-                let statusText = 'Scheduled';
-                let statusClass = 'scheduled';
-                if (game.start_date_time) {
-                    const gameTime = new Date(game.start_date_time);
-                    if (game.status === 'in_progress') {
-                        statusText = `Q${game.period} ${game.clock}`;
-                        statusClass = 'in-progress';
-                    } else if (game.status === 'final') {
-                        statusText = 'Final';
-                        statusClass = 'final';
-                    } else {
-                        statusText = `${gameTime.toLocaleDateString()} @ ${gameTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
-                    }
-                }
-
-                const gameCard = `
-                    <div class="game-card flex items-center justify-between">
-                        <div class="flex flex-col items-center text-center w-1/3">
-                            <img src="https://placehold.co/50x50/e5e7eb/78350f?text=Team" alt="${awayTeam} logo" class="team-logo rounded-full">
-                            <span class="font-bold text-lg text-gray-800 mt-2">${awayTeam}</span>
-                        </div>
-                        
-                        <div class="flex-1 flex flex-col items-center justify-center">
-                            <div class="flex items-center space-x-4">
-                                <div class="score-box">${awayScore}</div>
-                                <div class="text-2xl font-bold text-gray-500">vs</div>
-                                <div class="score-box">${homeScore}</div>
-                            </div>
-                            <div class="mt-4 text-sm text-gray-500 text-center">
-                                <p>${venue}</p>
-                                <span class="status-pill ${statusClass} mt-2 inline-block">${statusText}</span>
-                            </div>
-                        </div>
-
-                        <div class="flex flex-col items-center text-center w-1/3">
-                            <img src="https://placehold.co/50x50/e5e7eb/78350f?text=Team" alt="${homeTeam} logo" class="team-logo rounded-full">
-                            <span class="font-bold text-lg text-gray-800 mt-2">${homeTeam}</span>
-                        </div>
-                    </div>
-                `;
-                scoresContainer.innerHTML += gameCard;
-            });
-        }
+        // Fetch scores on page load
+        fetchScores();
         
-        // Initial fetch of scores
-        fetchCFBScores();
+        // You can also add a refresh button to update the scores manually
+        // or set an interval to auto-refresh the data.
+    </script>
 
-        // Refresh scores every 60 seconds
-        setInterval(fetchCFBScores, 60000);
-    });
-</script>
 </body>
 </html>
