@@ -114,13 +114,16 @@
                         scoreHighlightClass = 'bg-blue-600 border-blue-400';
                     }
                 }
-                
+
+                const statusText = game.status === 'Final' ? 'Final' : `Period ${game.period ?? '-'}`;
+                const clockText = game.status === 'Final' ? '' : game.clock?.displayValue ?? '-';
+
                 const cardHtml = `
                     <div class="${cardClasses} ${scoreHighlightClass}">
                         <!-- Game Status -->
                         <div class="flex justify-between items-center text-sm text-gray-400 mb-2">
-                            <span>Period ${game.period ?? '-'}</span>
-                            <span>${game.clock?.displayValue ?? '-'}</span>
+                            <span>${statusText}</span>
+                            <span>${clockText}</span>
                         </div>
 
                         <!-- Away Team -->
@@ -129,7 +132,7 @@
                                 ${game.awayRank ? `<span class="text-sm font-bold text-gray-400 mr-2">${game.awayRank}</span>` : ''}
                                 <span class="text-xl font-semibold">${game.awayTeam.abbreviation}</span>
                             </div>
-                            <span class="text-2xl font-bold">${game.awayPoints}</span>
+                            <span class="text-2xl font-bold">${game.awayPoints ?? 0}</span>
                         </div>
                         
                         <!-- Home Team -->
@@ -138,7 +141,7 @@
                                 ${game.homeRank ? `<span class="text-sm font-bold text-gray-400 mr-2">${game.homeRank}</span>` : ''}
                                 <span class="text-xl font-semibold">${game.homeTeam.abbreviation}</span>
                             </div>
-                            <span class="text-2xl font-bold">${game.homePoints}</span>
+                            <span class="text-2xl font-bold">${game.homePoints ?? 0}</span>
                         </div>
                     </div>
                 `;
