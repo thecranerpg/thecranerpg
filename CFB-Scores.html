@@ -81,11 +81,11 @@
 
                 // If the response is OK, parse the JSON
                 const games = await response.json();
+                console.log('API Response:', games); // Log the raw response for debugging
                 renderScores(games);
                 updateLastUpdatedTime();
                 
-                // Store the timestamp of the successful fetch in localStorage
-                localStorage.setItem('lastFetchTimestamp', Date.now());
+                // We will no longer store the timestamp in localStorage to allow for easier testing.
 
             } catch (error) {
                 console.error('Failed to fetch scores:', error);
@@ -168,24 +168,26 @@
             errorMessage.classList.remove('hidden');
         }
         
-        // This function orchestrates the fetching logic based on time and day.
+        // This function orchestrates the fetching logic. The time and day checks are
+        // temporarily commented out to allow for easier testing.
         function scheduleFetch() {
             const now = new Date();
-            const dayOfWeek = now.getDay(); // Sunday is 0, Saturday is 6
-            const lastFetchTimestamp = localStorage.getItem('lastFetchTimestamp');
-            const tenMinutes = 10 * 60 * 1000;
+            // const dayOfWeek = now.getDay(); // Sunday is 0, Saturday is 6
+            // const lastFetchTimestamp = localStorage.getItem('lastFetchTimestamp');
+            // const tenMinutes = 10 * 60 * 1000;
 
-            // Only fetch if it's Saturday and 10 minutes have passed since the last successful fetch.
-            if (dayOfWeek === 6) { // 6 for Saturday
-                if (!lastFetchTimestamp || (now.getTime() - lastFetchTimestamp) > tenMinutes) {
-                    console.log('It is Saturday and 10 minutes have passed. Fetching scores...');
-                    fetchScores();
-                } else {
-                    console.log('It is Saturday, but a fetch has already occurred within the last 10 minutes.');
-                }
-            } else {
-                console.log('It is not Saturday. No scores will be fetched automatically.');
-            }
+            // if (dayOfWeek === 6) { // 6 for Saturday
+            //     if (!lastFetchTimestamp || (now.getTime() - lastFetchTimestamp) > tenMinutes) {
+            //         console.log('It is Saturday and 10 minutes have passed. Fetching scores...');
+            //         fetchScores();
+            //     } else {
+            //         console.log('It is Saturday, but a fetch has already occurred within the last 10 minutes.');
+            //     }
+            // } else {
+            //     console.log('It is not Saturday. No scores will be fetched automatically.');
+            // }
+
+            fetchScores();
         }
 
         // Call the scheduling function on page load and then every 10 minutes.
