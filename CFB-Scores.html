@@ -157,7 +157,11 @@
                 
                 if (isGameInProgress(game)) {
                     statusText = `Q${game.period ?? '-'}`;
-                    clockText = game.clock?.displayValue ?? '-';
+                    // ### FIX START ###
+                    // The API provides the clock directly as a string, not in a nested object.
+                    // Changed `game.clock?.displayValue` to `game.clock` to correctly display the time.
+                    clockText = game.clock ?? '-';
+                    // ### FIX END ###
                 } else if (status === 'final') {
                     statusText = 'Final';
                 } else if (status === 'scheduled') {
