@@ -54,14 +54,10 @@
          * Fetches live game data from the API and triggers the rendering process.
          */
         async function fetchScores() {
-            // Hide any previous errors
             errorMessage.classList.add('hidden');
-
             try {
                 const response = await fetch('https://api.collegefootballdata.com/scoreboard', {
-                    headers: {
-                        'Authorization': `Bearer ${apiKey}`
-                    }
+                    headers: { 'Authorization': `Bearer ${apiKey}` }
                 });
 
                 if (!response.ok) {
@@ -69,8 +65,6 @@
                 }
 
                 const allGames = await response.json();
-                
-                // Filter out games that are final or haven't started yet.
                 const liveGames = allGames.filter(game => game.status !== 'Final' && game.status !== 'Scheduled');
 
                 renderScores(liveGames);
@@ -87,7 +81,6 @@
          * @param {Array} games - An array of live game objects.
          */
         function renderScores(games) {
-            // Clear previous content
             scoresContainer.innerHTML = '';
 
             if (games.length === 0) {
@@ -95,7 +88,6 @@
                 return;
             }
             
-            // Sort games to show highlighted games first
             games.sort((a, b) => {
                 const aIsHighlighted = isHighlighted(a);
                 const bIsHighlighted = isHighlighted(b);
@@ -104,41 +96,40 @@
                 return 0;
             });
 
-
             games.forEach(game => {
+                if (!game.homeTeam || !game.awayTeam) {
+                    console.warn('Skipping game with missing team data:', game);
+                    return;
+                }
+
                 let cardClasses = 'bg-gray-800 border border-gray-700 p-4 rounded-xl shadow-lg transition-transform duration-300 hover:-translate-y-1';
                 
                 const isSecondHalf = game.period > 2;
-                const scoreDifference = Math.abs((game.homeScore ?? 0) - (game.awayScore ?? 0));
+                const scoreDifference = Math.abs((game.homeTeam.points ?? 0) - (game.awayTeam.points ?? 0));
                 const isOneScoreGame = scoreDifference <= 8;
-                const isRankedGame = game.homeRank !== null || game.awayRank !== null;
+                const isRankedGame = game.currentRankings && (game.currentRankings.home || game.currentRankings.away);
 
-                // Apply highlighting based on game status
                 if (isSecondHalf && isOneScoreGame) {
                     if (isRankedGame) {
-                        // Most important highlight: ranked, close game in 2nd half
                         cardClasses = 'bg-yellow-900/50 border-2 border-yellow-500 p-4 rounded-xl shadow-lg transition-transform duration-300 hover:-translate-y-1 glow-ranked';
                     } else {
-                        // Important highlight: close game in 2nd half
                         cardClasses = 'bg-blue-900/60 border-2 border-blue-500 p-4 rounded-xl shadow-lg transition-transform duration-300 hover:-translate-y-1';
                     }
                 }
 
-                // Safely access clock display value
-                const clockText = game.clock?.displayValue ?? '0:00';
+                const clockText = (game.clock && typeof game.clock === 'object' ? game.clock.displayValue : game.clock) ?? '-';
                 const statusText = `Q${game.period ?? '-'}`;
 
                 const cardHtml = `
                     <div class="${cardClasses}">
-                        <!-- Game Status -->
                         <div class="flex justify-between items-center text-sm text-gray-400 mb-3 pb-2 border-b border-gray-700">
                             <span class="font-bold text-base ${isSecondHalf && isOneScoreGame ? 'text-white' : ''}">${statusText}</span>
                             <span class="font-mono text-base ${isSecondHalf && isOneScoreGame ? 'text-white' : ''}">${clockText}</span>
                         </div>
-
-                        <!-- Teams and Scores -->
-                        ${createTeamHtml(game.awayRank, game.awayAbbreviation, game.awayScore)}
-                        ${createTeamHtml(game.homeRank, game.homeAbbreviation, game.homeScore)}
+                        
+                        <!-- REFACTORED: Pass the entire team object for robust rendering -->
+                        ${createTeamHtml(game.currentRankings?.away, game.awayTeam)}
+                        ${createTeamHtml(game.currentRankings?.home, game.homeTeam)}
                     </div>
                 `;
                 scoresContainer.innerHTML += cardHtml;
@@ -149,8 +140,9 @@
          * Helper function to check if a game should be highlighted for sorting.
          */
         function isHighlighted(game) {
+            if (!game.homeTeam || !game.awayTeam) return false;
             const isSecondHalf = game.period > 2;
-            const scoreDifference = Math.abs((game.homeScore ?? 0) - (game.awayScore ?? 0));
+            const scoreDifference = Math.abs((game.homeTeam.points ?? 0) - (game.awayTeam.points ?? 0));
             const isOneScoreGame = scoreDifference <= 8;
             return isSecondHalf && isOneScoreGame;
         }
@@ -158,19 +150,25 @@
         /**
          * Creates the HTML for a single team row.
          * @param {number|null} rank - The team's rank.
-         * @param {string} abbreviation - The team's abbreviation.
-         * @param {number} score - The team's score.
+         * @param {object} team - The team object from the API.
          * @returns {string} The HTML string for the team row.
          */
-        function createTeamHtml(rank, abbreviation, score) {
-            const rankHtml = rank ? `<span class="text-sm font-bold text-gray-400 w-6">${rank}</span>` : '<span class="w-6"></span>';
+        function createTeamHtml(rank, team) {
+            // Defensive check for the team object
+            if (!team) return '';
+
+            // FINAL FIX: Use abbreviation if available, otherwise fall back to name.
+            const teamName = team.abbreviation || team.name || 'TEAM';
+            const score = team.points ?? 0;
+
+            const rankHtml = rank ? `<span class="text-sm font-bold text-gray-400 w-6">#${rank}</span>` : '<span class="w-6"></span>';
             return `
                 <div class="flex items-center justify-between mb-2 text-lg">
                     <div class="flex items-center gap-3">
                         ${rankHtml}
-                        <span class="font-semibold text-white">${abbreviation ?? 'TEAM'}</span>
+                        <span class="font-semibold text-white">${teamName}</span>
                     </div>
-                    <span class="text-xl font-bold text-white">${score ?? 0}</span>
+                    <span class="text-xl font-bold text-white">${score}</span>
                 </div>
             `;
         }
@@ -186,10 +184,9 @@
 
         /**
          * Displays an error message on the page.
-         * @param {string} message - The error message to display.
          */
         function displayError(message) {
-            scoresContainer.innerHTML = ''; // Clear scores on error
+            scoresContainer.innerHTML = '';
             errorMessage.textContent = message;
             errorMessage.classList.remove('hidden');
         }
@@ -198,8 +195,8 @@
          * Main function to start fetching data.
          */
         function initialize() {
-            fetchScores(); // Fetch immediately on load
-            setInterval(fetchScores, 60000); // Refresh every 60 seconds
+            fetchScores();
+            setInterval(fetchScores, 60000);
         };
 
         window.onload = initialize;
@@ -207,3 +204,4 @@
 
 </body>
 </html>
+
