@@ -63,7 +63,8 @@
                 // We've updated the endpoint to /scoreboard as it is a more suitable endpoint for live scores.
                 const response = await fetch('https://api.collegefootballdata.com/scoreboard', {
                     headers: {
-                        'x-api-key': apiKey
+                        // The API requires the 'Bearer ' prefix for the API key to work correctly.
+                        'x-api-key': 'Bearer ' + apiKey
                     }
                 });
 
