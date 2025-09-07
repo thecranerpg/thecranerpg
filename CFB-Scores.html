@@ -164,6 +164,7 @@
                     statusText = game.status; // Fallback for Canceled, etc.
                 }
 
+
                 const homeHasPossession = game.possession === game.homeTeam.id;
                 const awayHasPossession = game.possession === game.awayTeam.id;
 
@@ -224,8 +225,8 @@
             const teamName = team.school || team.name || 'TEAM';
             const score = team.points ?? 0;
             // ### FIX START ###
-            // Changed `team.logo` to `team.logos[0]` and added checks to ensure the `logos` array exists.
-            const logoUrl = (team.logos && team.logos.length > 0) ? team.logos[0] : 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
+            // Check for logos array, take the first one, and force it to HTTPS to prevent mixed content errors.
+            const logoUrl = (team.logos && team.logos.length > 0) ? team.logos[0].replace(/^http:\/\//i, 'https://') : 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
             // ### FIX END ###
             const possessionClass = hasPossession ? 'text-yellow-400 font-bold' : 'font-semibold text-white';
 
