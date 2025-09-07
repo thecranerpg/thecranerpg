@@ -50,7 +50,7 @@
         const lastUpdatedText = document.getElementById('last-updated');
 
         /**
-         * Fetches all necessary data (scores, lines, logos) and triggers rendering.
+         * Fetches all necessary data (scores, lines, teams/logos) and triggers rendering.
          */
         async function fetchScores() {
             console.log("Fetching scores at", new Date().toLocaleTimeString()); // For debugging
@@ -89,16 +89,19 @@
 
                 const scoreboardUrl = 'https://api.collegefootballdata.com/scoreboard?classification=fbs';
                 const linesUrl = `https://api.collegefootballdata.com/lines?year=${currentYear}&week=${week}&seasonType=${seasonType}`;
-                const logosUrl = 'https://api.collegefootballdata.com/logos';
+                // ### FIX START ###
+                // Use the /teams endpoint to get team data which includes logos.
+                const teamsUrl = 'https://api.collegefootballdata.com/teams';
+                // ### FIX END ###
 
-                const [allGames, linesData, allLogos] = await Promise.all([
+                const [allGames, linesData, allTeams] = await Promise.all([
                     safeFetchJson(scoreboardUrl, { headers }),
                     safeFetchJson(linesUrl, { headers }),
-                    safeFetchJson(logosUrl, { headers })
+                    safeFetchJson(teamsUrl, { headers })
                 ]);
 
                 const logoMap = new Map();
-                allLogos.forEach(team => {
+                allTeams.forEach(team => {
                     if (team.logos && team.logos.length > 0) {
                         logoMap.set(team.school, team.logos[0].replace(/^http:\/\//i, 'https://'));
                     }
@@ -230,7 +233,7 @@
             if (!team) return '';
             const teamName = team.school || team.name || 'TEAM';
             const score = team.points ?? 0;
-            const logoUrl = logoMap.get(teamName) || 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
+            const logoUrl = logoMap.get(teamName) || 'data:image/gif;base64,RოდlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
             const possessionClass = hasPossession ? 'text-yellow-400 font-bold' : 'font-semibold text-white';
 
             return `
