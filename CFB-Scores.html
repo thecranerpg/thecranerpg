@@ -30,13 +30,15 @@
         </header>
 
         <main id="scores-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <!-- Loading placeholder -->
             <div class="col-span-full text-center p-8">
                 <div class="animate-pulse text-blue-400">Loading live scores...</div>
             </div>
         </main>
 
         <div id="error-message" class="hidden text-center text-red-400 bg-red-900/50 border border-red-700 rounded-lg p-4 mt-8">
-            </div>
+            <!-- Error messages will be displayed here -->
+        </div>
 
         <footer class="mt-12 text-center text-gray-500 text-xs">
             <p>Data provided by College Football Data API. Automatically refreshing every 10 minutes on Saturdays.</p>
@@ -48,9 +50,9 @@
         const scoresContainer = document.getElementById('scores-container');
         const errorMessage = document.getElementById('error-message');
         const lastUpdatedText = document.getElementById('last-updated');
-        
+
         /**
-         * Fetches all necessary data (scores, lines, and logos) and triggers rendering.
+         * Fetches all necessary data (scores, lines, logos, and rankings) and triggers rendering.
          */
         async function fetchScores() {
             console.log("Fetching scores at", new Date().toLocaleTimeString()); // For debugging
@@ -89,21 +91,41 @@
 
                 const scoreboardUrl = 'https://api.collegefootballdata.com/scoreboard?classification=fbs';
                 const linesUrl = `https://api.collegefootballdata.com/lines?year=${currentYear}&week=${week}&seasonType=${seasonType}`;
-                const teamsUrl = 'https://api.collegefootballdata.com/teams'; // ### ADDED ### API endpoint for all teams
+                const teamsUrl = 'https://api.collegefootballdata.com/teams'; 
+                // ### ADDED ### API endpoint for rankings
+                const rankingsUrl = `https://api.collegefootballdata.com/rankings?year=${currentYear}&week=${week}&seasonType=${seasonType}`;
 
-                const [allGames, linesData, teamsData] = await Promise.all([ // ### MODIFIED ### Added teamsData fetch
+                const [allGames, linesData, teamsData, rankingsData] = await Promise.all([
                     safeFetchJson(scoreboardUrl, { headers }),
                     safeFetchJson(linesUrl, { headers }),
-                    safeFetchJson(teamsUrl, { headers }) // ### ADDED ### API call for teams
+                    safeFetchJson(teamsUrl, { headers }),
+                    safeFetchJson(rankingsUrl, { headers }) // ### ADDED ### API call for rankings
                 ]);
                 
-                // ### ADDED ### Create a fast lookup map for logos
                 const logosMap = {};
+                const teamNameToIdMap = {}; // ### ADDED ### Helper map to link names to IDs
                 teamsData.forEach(team => {
-                    if (team.school && team.logos && team.logos.length > 0) {
-                        logosMap[team.school] = team.logos[0]; // Store the first logo URL
+                    if (team.id && team.logos && team.logos.length > 0) {
+                        logosMap[team.id] = team.logos[0]; 
+                    }
+                    if(team.school && team.id) {
+                        teamNameToIdMap[team.school] = team.id;
                     }
                 });
+
+                // ### ADDED ### Create a map for team rankings
+                const ranksMap = {};
+                if (rankingsData.length > 0) {
+                    const apPoll = rankingsData[0].polls.find(p => p.poll === 'AP Top 25');
+                    if (apPoll) {
+                        apPoll.ranks.forEach(rankInfo => {
+                            const teamId = teamNameToIdMap[rankInfo.school];
+                            if (teamId) {
+                                ranksMap[teamId] = rankInfo.rank;
+                            }
+                        });
+                    }
+                }
 
                 const linesMap = {};
                 linesData.forEach(game => {
@@ -111,8 +133,8 @@
                         linesMap[String(game.id)] = game.lines[0];
                     }
                 });
-
-                renderScores(allGames, linesMap, logosMap); // ### MODIFIED ### Pass logosMap to the render function
+                
+                renderScores(allGames, linesMap, logosMap, ranksMap); // ### MODIFIED ### Pass ranksMap
                 updateLastUpdatedTime();
 
             } catch (error) {
@@ -124,8 +146,9 @@
         /**
          * Renders the game data onto the page.
          */
-        function renderScores(games, lines, logos) { // ### MODIFIED ### Accept logos map
+        function renderScores(games, lines, logos, ranks) { // ### MODIFIED ### Accept ranks
             scoresContainer.innerHTML = '';
+
             if (games.length === 0) {
                 displayMessage("No games scheduled for today.");
                 return;
@@ -159,6 +182,7 @@
 
                 let statusText = '';
                 let clockText = '';
+
                 const status = (game.status || '').toLowerCase();
                 
                 if (isGameInProgress(game)) {
@@ -175,9 +199,12 @@
                 const homeHasPossession = game.possession === game.homeTeam.id;
                 const awayHasPossession = game.possession === game.awayTeam.id;
 
-                // ### MODIFIED ### Look up the logo URL from our map
-                const awayLogoUrl = logos[game.awayTeam.school];
-                const homeLogoUrl = logos[game.homeTeam.school];
+                const awayLogoUrl = logos[game.awayTeam.id];
+                const homeLogoUrl = logos[game.homeTeam.id];
+
+                // ### ADDED ### Look up team ranks
+                const awayRank = ranks[game.awayTeam.id];
+                const homeRank = ranks[game.homeTeam.id];
 
                 const cardHtml = `
                     <div class="${cardClasses}">
@@ -185,8 +212,8 @@
                             <span class="font-bold text-base ${isGameHighlighted ? 'text-white' : ''}">${statusText}</span>
                             <span class="font-mono text-base ${isGameHighlighted ? 'text-white' : ''}">${clockText}</span>
                         </div>
-                        ${createTeamHtml(game.awayTeam, awayHasPossession, awayLogoUrl)}
-                        ${createTeamHtml(game.homeTeam, homeHasPossession, homeLogoUrl)}
+                        ${createTeamHtml(game.awayTeam, awayHasPossession, awayLogoUrl, awayRank)}
+                        ${createTeamHtml(game.homeTeam, homeHasPossession, homeLogoUrl, homeRank)}
 
                         <div class="mt-4 pt-2 border-t border-gray-700 text-xs text-gray-400 flex justify-between items-center">
                             <div>
@@ -202,13 +229,8 @@
             });
         }
         
-        /**
-         * Checks if a game is currently in progress, handling multiple status variations.
-         * @param {object} game - The game object from the API.
-         * @returns {boolean}
-         */
         function isGameInProgress(game) {
-            const status = (game.status || '').toLowerCase().replace(/[\s_]/g, ''); // Normalize status
+            const status = (game.status || '').toLowerCase().replace(/[\s_]/g, ''); 
             return status === 'inprogress' || status === 'inprogres';
         }
 
@@ -224,25 +246,29 @@
 
         function isHighlighted(game) {
             if (!game.homeTeam || !game.awayTeam || !isGameInProgress(game)) return false;
+            
             const isSecondHalf = game.period > 2;
             const scoreDifference = Math.abs((game.homeTeam.points ?? 0) - (game.awayTeam.points ?? 0));
             const isOneScoreGame = scoreDifference <= 8;
             return isSecondHalf && isOneScoreGame;
         }
 
-        // ### MODIFIED ### Accept a logoUrl parameter
-        function createTeamHtml(team, hasPossession, logoUrl) {
+        // ### MODIFIED ### Accept rank as a parameter and adjust its position/style
+        function createTeamHtml(team, hasPossession, logoUrl, rank) {
             if (!team) return '';
             const teamName = team.school || team.name || 'TEAM';
             const score = team.points ?? 0;
-            // ### MODIFIED ### Use the passed logoUrl, with a fallback
-            const logoToDisplay = logoUrl || 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7'; // transparent pixel
+            const logoToDisplay = logoUrl || 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
             const possessionClass = hasPossession ? 'text-yellow-400 font-bold' : 'font-semibold text-white';
-            
+
+            // ### MODIFIED ### Create a smaller rank display, or an empty placeholder for alignment
+            const rankDisplay = rank ? `<span class="font-normal text-sm text-gray-400 w-7 text-center">(${rank})</span>` : `<span class="w-7"></span>`;
+
             return `
                 <div class="flex items-center justify-between mb-2 text-lg">
-                    <div class="flex items-center gap-3">
+                    <div class="flex items-center gap-2">
                         <img src="${logoToDisplay}" alt="${teamName} logo" class="team-logo" onerror="this.style.display='none'">
+                        ${rankDisplay}
                         <span class="${possessionClass}">${teamName}</span>
                     </div>
                     <span class="text-xl font-bold text-white">${score}</span>
@@ -271,8 +297,8 @@
             
             if (dayOfWeek === 6) {
                 lastUpdatedText.textContent = 'It\'s Game Day! Fetching latest scores...';
-                fetchScores(); // Fetch immediately
-                setInterval(fetchScores, 600000); // Refresh every 10 minutes
+                fetchScores(); 
+                setInterval(fetchScores, 600000); 
             } else {
                 displayMessage("It's not Saturday! Check back on game day for live scores.");
                 lastUpdatedText.textContent = 'Come back on Saturday for live scores!';
@@ -284,3 +310,5 @@
 
 </body>
 </html>
+
+
