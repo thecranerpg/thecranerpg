@@ -30,15 +30,13 @@
         </header>
 
         <main id="scores-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            <!-- Loading placeholder -->
             <div class="col-span-full text-center p-8">
                 <div class="animate-pulse text-blue-400">Loading live scores...</div>
             </div>
         </main>
 
         <div id="error-message" class="hidden text-center text-red-400 bg-red-900/50 border border-red-700 rounded-lg p-4 mt-8">
-            <!-- Error messages will be displayed here -->
-        </div>
+            </div>
 
         <footer class="mt-12 text-center text-gray-500 text-xs">
             <p>Data provided by College Football Data API. Automatically refreshing every 10 minutes on Saturdays.</p>
@@ -157,11 +155,7 @@
                 
                 if (isGameInProgress(game)) {
                     statusText = `Q${game.period ?? '-'}`;
-                    // ### FIX START ###
-                    // The API provides the clock directly as a string, not in a nested object.
-                    // Changed `game.clock?.displayValue` to `game.clock` to correctly display the time.
                     clockText = game.clock ?? '-';
-                    // ### FIX END ###
                 } else if (status === 'final') {
                     statusText = 'Final';
                 } else if (status === 'scheduled') {
@@ -169,7 +163,6 @@
                 } else {
                     statusText = game.status; // Fallback for Canceled, etc.
                 }
-
 
                 const homeHasPossession = game.possession === game.homeTeam.id;
                 const awayHasPossession = game.possession === game.awayTeam.id;
@@ -230,7 +223,10 @@
             if (!team) return '';
             const teamName = team.school || team.name || 'TEAM';
             const score = team.points ?? 0;
-            const logoUrl = team.logo || 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
+            // ### FIX START ###
+            // Changed `team.logo` to `team.logos[0]` and added checks to ensure the `logos` array exists.
+            const logoUrl = (team.logos && team.logos.length > 0) ? team.logos[0] : 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
+            // ### FIX END ###
             const possessionClass = hasPossession ? 'text-yellow-400 font-bold' : 'font-semibold text-white';
 
             return `
