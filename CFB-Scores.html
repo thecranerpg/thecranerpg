@@ -48,9 +48,9 @@
         const scoresContainer = document.getElementById('scores-container');
         const errorMessage = document.getElementById('error-message');
         const lastUpdatedText = document.getElementById('last-updated');
-
+        
         /**
-         * Fetches all necessary data (scores, lines, logos) and triggers rendering.
+         * Fetches all necessary data (scores, lines, and logos) and triggers rendering.
          */
         async function fetchScores() {
             console.log("Fetching scores at", new Date().toLocaleTimeString()); // For debugging
@@ -89,18 +89,19 @@
 
                 const scoreboardUrl = 'https://api.collegefootballdata.com/scoreboard?classification=fbs';
                 const linesUrl = `https://api.collegefootballdata.com/lines?year=${currentYear}&week=${week}&seasonType=${seasonType}`;
-                const logosUrl = 'https://api.collegefootballdata.com/logos';
+                const teamsUrl = 'https://api.collegefootballdata.com/teams'; // ### ADDED ### API endpoint for all teams
 
-                const [allGames, linesData, allLogos] = await Promise.all([
+                const [allGames, linesData, teamsData] = await Promise.all([ // ### MODIFIED ### Added teamsData fetch
                     safeFetchJson(scoreboardUrl, { headers }),
                     safeFetchJson(linesUrl, { headers }),
-                    safeFetchJson(logosUrl, { headers })
+                    safeFetchJson(teamsUrl, { headers }) // ### ADDED ### API call for teams
                 ]);
-
-                const logoMap = new Map();
-                allLogos.forEach(team => {
-                    if (team.logos && team.logos.length > 0) {
-                        logoMap.set(team.school, team.logos[0].replace(/^http:\/\//i, 'https://'));
+                
+                // ### ADDED ### Create a fast lookup map for logos
+                const logosMap = {};
+                teamsData.forEach(team => {
+                    if (team.school && team.logos && team.logos.length > 0) {
+                        logosMap[team.school] = team.logos[0]; // Store the first logo URL
                     }
                 });
 
@@ -110,8 +111,8 @@
                         linesMap[String(game.id)] = game.lines[0];
                     }
                 });
-                
-                renderScores(allGames, linesMap, logoMap);
+
+                renderScores(allGames, linesMap, logosMap); // ### MODIFIED ### Pass logosMap to the render function
                 updateLastUpdatedTime();
 
             } catch (error) {
@@ -123,9 +124,8 @@
         /**
          * Renders the game data onto the page.
          */
-        function renderScores(games, lines, logoMap) {
+        function renderScores(games, lines, logos) { // ### MODIFIED ### Accept logos map
             scoresContainer.innerHTML = '';
-
             if (games.length === 0) {
                 displayMessage("No games scheduled for today.");
                 return;
@@ -159,7 +159,6 @@
 
                 let statusText = '';
                 let clockText = '';
-
                 const status = (game.status || '').toLowerCase();
                 
                 if (isGameInProgress(game)) {
@@ -176,14 +175,18 @@
                 const homeHasPossession = game.possession === game.homeTeam.id;
                 const awayHasPossession = game.possession === game.awayTeam.id;
 
+                // ### MODIFIED ### Look up the logo URL from our map
+                const awayLogoUrl = logos[game.awayTeam.school];
+                const homeLogoUrl = logos[game.homeTeam.school];
+
                 const cardHtml = `
                     <div class="${cardClasses}">
                         <div class="flex justify-between items-center text-sm text-gray-400 mb-3 pb-2 border-b border-gray-700">
                             <span class="font-bold text-base ${isGameHighlighted ? 'text-white' : ''}">${statusText}</span>
                             <span class="font-mono text-base ${isGameHighlighted ? 'text-white' : ''}">${clockText}</span>
                         </div>
-                        ${createTeamHtml(game.awayTeam, awayHasPossession, logoMap)}
-                        ${createTeamHtml(game.homeTeam, homeHasPossession, logoMap)}
+                        ${createTeamHtml(game.awayTeam, awayHasPossession, awayLogoUrl)}
+                        ${createTeamHtml(game.homeTeam, homeHasPossession, homeLogoUrl)}
 
                         <div class="mt-4 pt-2 border-t border-gray-700 text-xs text-gray-400 flex justify-between items-center">
                             <div>
@@ -201,9 +204,11 @@
         
         /**
          * Checks if a game is currently in progress, handling multiple status variations.
+         * @param {object} game - The game object from the API.
+         * @returns {boolean}
          */
         function isGameInProgress(game) {
-            const status = (game.status || '').toLowerCase().replace(/[\s_]/g, '');
+            const status = (game.status || '').toLowerCase().replace(/[\s_]/g, ''); // Normalize status
             return status === 'inprogress' || status === 'inprogres';
         }
 
@@ -219,24 +224,25 @@
 
         function isHighlighted(game) {
             if (!game.homeTeam || !game.awayTeam || !isGameInProgress(game)) return false;
-            
             const isSecondHalf = game.period > 2;
             const scoreDifference = Math.abs((game.homeTeam.points ?? 0) - (game.awayTeam.points ?? 0));
             const isOneScoreGame = scoreDifference <= 8;
             return isSecondHalf && isOneScoreGame;
         }
 
-        function createTeamHtml(team, hasPossession, logoMap) {
+        // ### MODIFIED ### Accept a logoUrl parameter
+        function createTeamHtml(team, hasPossession, logoUrl) {
             if (!team) return '';
             const teamName = team.school || team.name || 'TEAM';
             const score = team.points ?? 0;
-            const logoUrl = logoMap.get(teamName) || 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
+            // ### MODIFIED ### Use the passed logoUrl, with a fallback
+            const logoToDisplay = logoUrl || 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7'; // transparent pixel
             const possessionClass = hasPossession ? 'text-yellow-400 font-bold' : 'font-semibold text-white';
-
+            
             return `
                 <div class="flex items-center justify-between mb-2 text-lg">
                     <div class="flex items-center gap-3">
-                        <img src="${logoUrl}" alt="${teamName} logo" class="team-logo" onerror="this.style.display='none'">
+                        <img src="${logoToDisplay}" alt="${teamName} logo" class="team-logo" onerror="this.style.display='none'">
                         <span class="${possessionClass}">${teamName}</span>
                     </div>
                     <span class="text-xl font-bold text-white">${score}</span>
@@ -265,8 +271,8 @@
             
             if (dayOfWeek === 6) {
                 lastUpdatedText.textContent = 'It\'s Game Day! Fetching latest scores...';
-                fetchScores(); 
-                setInterval(fetchScores, 600000); 
+                fetchScores(); // Fetch immediately
+                setInterval(fetchScores, 600000); // Refresh every 10 minutes
             } else {
                 displayMessage("It's not Saturday! Check back on game day for live scores.");
                 lastUpdatedText.textContent = 'Come back on Saturday for live scores!';
