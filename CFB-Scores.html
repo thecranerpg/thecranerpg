@@ -50,7 +50,7 @@
         const lastUpdatedText = document.getElementById('last-updated');
 
         /**
-         * Fetches all necessary data (scores, lines) and triggers rendering.
+         * Fetches all necessary data (scores, lines, logos) and triggers rendering.
          */
         async function fetchScores() {
             console.log("Fetching scores at", new Date().toLocaleTimeString()); // For debugging
@@ -89,11 +89,20 @@
 
                 const scoreboardUrl = 'https://api.collegefootballdata.com/scoreboard?classification=fbs';
                 const linesUrl = `https://api.collegefootballdata.com/lines?year=${currentYear}&week=${week}&seasonType=${seasonType}`;
+                const logosUrl = 'https://api.collegefootballdata.com/logos';
 
-                const [allGames, linesData] = await Promise.all([
+                const [allGames, linesData, allLogos] = await Promise.all([
                     safeFetchJson(scoreboardUrl, { headers }),
-                    safeFetchJson(linesUrl, { headers })
+                    safeFetchJson(linesUrl, { headers }),
+                    safeFetchJson(logosUrl, { headers })
                 ]);
+
+                const logoMap = new Map();
+                allLogos.forEach(team => {
+                    if (team.logos && team.logos.length > 0) {
+                        logoMap.set(team.school, team.logos[0].replace(/^http:\/\//i, 'https://'));
+                    }
+                });
 
                 const linesMap = {};
                 linesData.forEach(game => {
@@ -102,7 +111,7 @@
                     }
                 });
                 
-                renderScores(allGames, linesMap);
+                renderScores(allGames, linesMap, logoMap);
                 updateLastUpdatedTime();
 
             } catch (error) {
@@ -114,7 +123,7 @@
         /**
          * Renders the game data onto the page.
          */
-        function renderScores(games, lines) {
+        function renderScores(games, lines, logoMap) {
             scoresContainer.innerHTML = '';
 
             if (games.length === 0) {
@@ -164,7 +173,6 @@
                     statusText = game.status; // Fallback for Canceled, etc.
                 }
 
-
                 const homeHasPossession = game.possession === game.homeTeam.id;
                 const awayHasPossession = game.possession === game.awayTeam.id;
 
@@ -174,8 +182,8 @@
                             <span class="font-bold text-base ${isGameHighlighted ? 'text-white' : ''}">${statusText}</span>
                             <span class="font-mono text-base ${isGameHighlighted ? 'text-white' : ''}">${clockText}</span>
                         </div>
-                        ${createTeamHtml(game.awayTeam, awayHasPossession)}
-                        ${createTeamHtml(game.homeTeam, homeHasPossession)}
+                        ${createTeamHtml(game.awayTeam, awayHasPossession, logoMap)}
+                        ${createTeamHtml(game.homeTeam, homeHasPossession, logoMap)}
 
                         <div class="mt-4 pt-2 border-t border-gray-700 text-xs text-gray-400 flex justify-between items-center">
                             <div>
@@ -193,11 +201,9 @@
         
         /**
          * Checks if a game is currently in progress, handling multiple status variations.
-         * @param {object} game - The game object from the API.
-         * @returns {boolean}
          */
         function isGameInProgress(game) {
-            const status = (game.status || '').toLowerCase().replace(/[\s_]/g, ''); // Normalize status by removing spaces and underscores
+            const status = (game.status || '').toLowerCase().replace(/[\s_]/g, '');
             return status === 'inprogress' || status === 'inprogres';
         }
 
@@ -220,14 +226,11 @@
             return isSecondHalf && isOneScoreGame;
         }
 
-        function createTeamHtml(team, hasPossession) {
+        function createTeamHtml(team, hasPossession, logoMap) {
             if (!team) return '';
             const teamName = team.school || team.name || 'TEAM';
             const score = team.points ?? 0;
-            // ### FIX START ###
-            // Check for logos array, take the first one, and force it to HTTPS to prevent mixed content errors.
-            const logoUrl = (team.logos && team.logos.length > 0) ? team.logos[0].replace(/^http:\/\//i, 'https://') : 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
-            // ### FIX END ###
+            const logoUrl = logoMap.get(teamName) || 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
             const possessionClass = hasPossession ? 'text-yellow-400 font-bold' : 'font-semibold text-white';
 
             return `
@@ -260,13 +263,9 @@
             const today = new Date();
             const dayOfWeek = today.getDay(); // Sunday is 0, Saturday is 6
             
-            // Only run the fetch logic if it's Saturday (day 6)
             if (dayOfWeek === 6) {
                 lastUpdatedText.textContent = 'It\'s Game Day! Fetching latest scores...';
-                // Fetch scores immediately on page load
                 fetchScores(); 
-                
-                // Then, set an interval to fetch scores every 10 minutes (600,000 milliseconds)
                 setInterval(fetchScores, 600000); 
             } else {
                 displayMessage("It's not Saturday! Check back on game day for live scores.");
